@@ -1,0 +1,4 @@
+{"num_batches": 249, "loss": 0.66, "pet_disc_loss": 0.063, "pet_mlm_loss": 0.596, "train_acc": 1.0, "dev_acc": 0.755}
+{"num_batches": 499, "loss": 0.139, "pet_disc_loss": 0.0, "pet_mlm_loss": 0.139, "train_acc": 1.0, "dev_acc": 0.747}
+{"num_batches": 749, "loss": 0.115, "pet_disc_loss": 0.0, "pet_mlm_loss": 0.115, "train_acc": 1.0, "dev_acc": 0.765}
+{"num_batches": 999, "loss": 0.084, "pet_disc_loss": 0.0, "pet_mlm_loss": 0.084, "train_acc": 1.0, "dev_acc": 0.755}
