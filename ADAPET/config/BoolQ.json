@@ -13,6 +13,6 @@
     "seed": 42,
     "lr": 1e-5,
     "weight_decay": 1e-2,
-    "pattern_idx": 1,
+    "pattern_idx": "random",
     "eval_train": true
 }
