@@ -482,7 +482,7 @@ class TransformerModelWrapper:
 
         if lm_training:
             lm_inputs = self.generate_default_inputs(unlabeled_batch)
-            lm_inputs['masked_lm_labels'] = unlabeled_batch['mlm_labels']
+            lm_inputs['labels'] = unlabeled_batch['mlm_labels']
             lm_loss = self.model(**lm_inputs)[0]
             loss = alpha * loss + (1 - alpha) * lm_loss
         return loss

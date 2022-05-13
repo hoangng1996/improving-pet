@@ -23,7 +23,11 @@ import torch
 from torch.nn import functional as F
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer, GPT2Tokenizer
+import nltk
+from pet.eda import eda
 
+nltk.download('wordnet')
+nltk.download('omw-1.4')
 
 class LogitsList:
     """A list of logits obtained from a finetuned PET model"""
@@ -79,8 +83,13 @@ class InputExample(object):
         :param idx: an optional numeric index
         """
         self.guid = guid
-        self.text_a = text_a
-        self.text_b = text_b
+        self.augment = False
+        if self.augment:
+            self.text_a = eda(text_a, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=1)[0]
+            self.text_b = eda(text_b, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=1)[0]
+        else:
+            self.text_a = text_a
+            self.text_b = text_b
         self.label = label
         self.logits = logits
         self.idx = idx

@@ -29,6 +29,12 @@ from pet.utils import InputExample, get_verbalization_ids
 import log
 from pet import wrapper as wrp
 
+import nltk
+from pet.eda import eda
+
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+
 logger = log.get_logger('root')
 
 FilledPattern = Tuple[List[Union[str, Tuple[str, bool]]], List[Union[str, Tuple[str, bool]]]]
@@ -267,8 +273,14 @@ class AgnewsPVP(PVP):
 
     def get_parts(self, example: InputExample) -> FilledPattern:
 
-        text_a = self.shortenable(example.text_a)
-        text_b = self.shortenable(example.text_b)
+        if random.random() < 0.5:
+            text_a = eda(example.text_a, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=10)[random.randint(0,9)]
+            text_a = self.shortenable(text_a)
+            text_b = eda(example.text_b, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=10)[random.randint(0,9)]
+            text_b = self.shortenable(text_b)
+        else:
+            text_a = self.shortenable(example.text_a)
+            text_b = self.shortenable(example.text_b)
 
         if self.pattern_id == 0:
             return [self.mask, ':', text_a, text_b], []
@@ -305,8 +317,20 @@ class YahooPVP(PVP):
 
     def get_parts(self, example: InputExample) -> FilledPattern:
 
-        text_a = self.shortenable(example.text_a)
-        text_b = self.shortenable(example.text_b)
+        if random.random() < 0.8:
+            try:
+                text_a = eda(example.text_a, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=10)[random.randint(0,9)]
+            except:
+                text_a = example.text_a
+            text_a = self.shortenable(text_a)
+            try:
+                text_b = eda(example.text_b, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=10)[random.randint(0,9)]
+            except:
+                text_b = example.text_b
+            text_b = self.shortenable(text_b)
+        else:
+            text_a = self.shortenable(example.text_a)
+            text_b = self.shortenable(example.text_b)
 
         if self.pattern_id == 0:
             return [self.mask, ':', text_a, text_b], []
@@ -361,7 +385,12 @@ class YelpPolarityPVP(PVP):
     }
 
     def get_parts(self, example: InputExample) -> FilledPattern:
-        text = self.shortenable(example.text_a)
+
+        if random.random() < 0.5:
+            text_a = eda(example.text_a, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=10)[random.randint(0,9)]
+            text = self.shortenable(text_a)
+        else:
+            text = self.shortenable(example.text_a)
 
         if self.pattern_id == 0:
             return ['It was', self.mask, '.', text], []
@@ -371,6 +400,14 @@ class YelpPolarityPVP(PVP):
             return ['Just', self.mask, "!"], [text]
         elif self.pattern_id == 3:
             return [text], ['In summary, the restaurant is', self.mask, '.']
+        elif self.pattern_id == 4:
+            return [self.mask, text], ['In summary, the restaurant is', self.mask, '.']
+        elif self.pattern_id == 5:
+            return [self.mask, "!"], [text]
+        elif self.pattern_id == 6:
+            return ['I believe', text, self.mask, "."], []
+        elif self.pattern_id == 7:
+            return ['If it was not', self.mask, "we can not trust", text, "."], []
         else:
             raise ValueError("No pattern implemented for id {}".format(self.pattern_id))
 

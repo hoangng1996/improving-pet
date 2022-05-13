@@ -4,9 +4,9 @@
 #SBATCH --output=./job_logs/yahoo/%j_%x.out
 #SBATCH --error=./job_logs/yahoo/%j_%x.err
 #SBATCH --export=ALL
-#SBATCH --time=48:00:00
+#SBATCH --time=6:00:00
 #SBATCH --gres=gpu:1
-#SBATCH --mem=64G
+#SBATCH --mem=32G
 #SBATCH -c 4
 
 singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/public/singularity/cuda10.1-cudnn7-devel-ubuntu18.04-20201207.sif /bin/bash -c "
@@ -20,14 +20,31 @@ nvidia-smi
 
 export OMP_NUM_THREADS=1
 
+
 python cli.py \
 --method pet \
---pattern_ids 0 1 2 3 4 \
+--pattern_ids 0 1 2 3 4 5 \
+--lm_training \
 --data_dir /scratch/xc2057/NLP/yahoo_answers/yahoo_answers_csv \
 --model_type roberta \
 --model_name_or_path roberta-large \
 --task_name yahoo \
---output_dir ./output/yahoo_new \
+--output_dir /scratch/xc2057/nlp_final/yahoo/T100_new_aug \
 --do_train \
---do_eval
+--do_eval \
+--train_examples 100 \
+--unlabeled_examples 1000 \
+--split_examples_evenly \
+--pet_per_gpu_train_batch_size 1 \
+--pet_per_gpu_unlabeled_batch_size 3 \
+--pet_gradient_accumulation_steps 4 \
+--pet_repetitions 1 \
+--pet_max_steps 750 \
+--sc_per_gpu_train_batch_size 4 \
+--sc_per_gpu_unlabeled_batch_size 4 \
+--sc_gradient_accumulation_steps 4 \
+--sc_max_steps 3000 \
+--sc_repetitions 1 \
+--overwrite_output_dir \
+--augmentation
 "

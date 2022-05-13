@@ -25,6 +25,7 @@ from typing import List, Dict, Callable
 import log
 from pet import task_helpers
 from pet.utils import InputExample
+from pet.eda import eda
 
 logger = log.get_logger('root')
 
@@ -196,7 +197,6 @@ class AgnewsProcessor(DataProcessor):
     @staticmethod
     def _create_examples(path: str, set_type: str) -> List[InputExample]:
         examples = []
-
         with open(path) as f:
             reader = csv.reader(f, delimiter=',')
             for idx, row in enumerate(reader):
@@ -204,10 +204,41 @@ class AgnewsProcessor(DataProcessor):
                 guid = "%s-%s" % (set_type, idx)
                 text_a = headline.replace('\\', ' ')
                 text_b = body.replace('\\', ' ')
-
                 example = InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label)
                 examples.append(example)
+        return examples
 
+
+class AugAgnewsProcessor(DataProcessor):
+    """Processor for the AG news data set."""
+
+    def get_train_examples(self, data_dir):
+        return self._create_examples(os.path.join(data_dir, "train.csv"), "train")
+
+    def get_dev_examples(self, data_dir):
+        return self._create_examples(os.path.join(data_dir, "test.csv"), "dev")
+
+    def get_test_examples(self, data_dir) -> List[InputExample]:
+        raise NotImplementedError()
+
+    def get_unlabeled_examples(self, data_dir) -> List[InputExample]:
+        return self.get_train_examples(data_dir)
+
+    def get_labels(self):
+        return ["1", "2", "3", "4"]
+
+    @staticmethod
+    def _create_examples(path: str, set_type: str) -> List[InputExample]:
+        examples = []
+        with open(path) as f:
+            reader = csv.reader(f, delimiter=',')
+            for idx, row in enumerate(reader):
+                label, headline, body = row
+                guid = "%s-%s" % (set_type, idx)
+                text_a = headline.replace('\\', ' ')
+                text_b = body.replace('\\', ' ')
+                example = InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label)
+                examples.append(example)
         return examples
 
 
@@ -766,6 +797,7 @@ PROCESSORS = {
     "mnli": MnliProcessor,
     "mnli-mm": MnliMismatchedProcessor,
     "agnews": AgnewsProcessor,
+    "agnews_aug": AugAgnewsProcessor,
     "yahoo": YahooAnswersProcessor,
     "yelp-polarity": YelpPolarityProcessor,
     "yelp-full": YelpFullProcessor,
@@ -805,9 +837,34 @@ UNLABELED_SET = "unlabeled"
 
 SET_TYPES = [TRAIN_SET, DEV_SET, TEST_SET, UNLABELED_SET]
 
+def EDA_augmentation(example, num_aug=9):
+    examples = []
+    examples.append(example)
+    guid = example.guid
+    text_a = example.text_a
+    text_b = example.text_b
+    label = example.label
+
+    try:
+        text_a_eda = eda(text_a, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=num_aug)
+    except:
+        text_a_eda = [text_a] * num_aug
+
+    try:
+        text_b_eda = eda(text_b, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=num_aug)
+    except:
+        text_b_eda = [text_b] * num_aug
+
+    for i in range(0, num_aug):
+        # print("Example >> " + text_a_eda[i] + " >>>>>>> " + text_b_eda[i])
+        new_example = InputExample(guid=guid, text_a=text_a_eda[i], text_b=text_b_eda[i], label=label)
+        examples.append(new_example)
+    
+    return examples
+    
 
 def load_examples(task, data_dir: str, set_type: str, *_, num_examples: int = None,
-                  num_examples_per_label: int = None, seed: int = 42) -> List[InputExample]:
+                  num_examples_per_label: int = None, seed: int = 42, augment: bool = False) -> List[InputExample]:
     """Load examples for a given task."""
     assert (num_examples is not None) ^ (num_examples_per_label is not None), \
         "Exactly one of 'num_examples' and 'num_examples_per_label' must be set."
@@ -843,6 +900,16 @@ def load_examples(task, data_dir: str, set_type: str, *_, num_examples: int = No
         for example in examples:
             limited_examples.add(example)
         examples = limited_examples.to_list()
+    
+    if augment and set_type == UNLABELED_SET:
+        new_examples_length = 0
+        new_examples = []
+        for example in examples:
+            generate_examples = EDA_augmentation(example, num_aug=9)
+            new_examples += generate_examples
+            new_examples_length += len(generate_examples)
+        examples = new_examples
+        examples = _shuffle_and_restrict(examples, new_examples_length, seed)
 
     label_distribution = Counter(example.label for example in examples)
     logger.info(f"Returning {len(examples)} {set_type} examples with label dist.: {list(label_distribution.items())}")
